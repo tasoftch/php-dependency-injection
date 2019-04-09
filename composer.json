@@ -13,9 +13,13 @@
     }
   },
   "require" : {
-    "php": "^7.2"
+    "php": "^7.2",
+    "tasoft/collection": "dev-master"
   },
   "require-dev": {
     "phpunit/phpunit": "^6"
+  },
+  "suggest": {
+    "tasoft/service-manager": "dev-master"
   }
 }
