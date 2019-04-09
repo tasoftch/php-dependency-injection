@@ -21,40 +21,34 @@
  * SOFTWARE.
  */
 
-namespace TASoft\DI\Injector;
+/**
+ * ObjectPropertyInjectorTest.php
+ * php-dependency-injection
+ *
+ * Created on 2019-04-09 20:34 by thomas
+ */
 
+use PHPUnit\Framework\TestCase;
+use TASoft\DI\Injector\ObjectPropertyInjector;
 
-use TASoft\Service\Container\ServicePromise;
-use TASoft\Service\ServiceManager;
-
-class ServiceInjector implements InjectorInterface
+class ObjectPropertyInjectorTest extends TestCase
 {
-    /** @var ServiceManager */
-    private $serviceManager;
+    public $myProperty;
 
     /**
-     * ServiceInjector constructor.
-     * @param ServiceManager $serviceManager
+     * @expectedException TASoft\DI\Exception\InvalidDependencyRequestException
      */
-    public function __construct(ServiceManager $serviceManager)
-    {
-        $this->serviceManager = $serviceManager;
-    }
+    public function testObjectInjector() {
+        $inj = new ObjectPropertyInjector($this);
 
-    /**
-     * @return ServiceManager
-     */
-    public function getServiceManager(): ServiceManager
-    {
-        return $this->serviceManager;
-    }
+        $this->assertNull($inj->getDependency(NULL, 'myProperty'));
+        $this->assertNull($inj->getDependency(NULL, 'unexistingProperty'));
+        $this->assertNull($inj->getDependency(NULL, 'Not a Property'));
 
+        $this->myProperty = $this;
+        $this->assertSame($this, $inj->getDependency(NULL, 'myProperty'));
+        $this->assertSame($this, $inj->getObject());
 
-    public function getDependency(?string $type, ?string $name)
-    {
-        /** @var ServicePromise $service */
-        foreach($this->getServiceManager()->yieldServices($name ? [$name] : [], $type ? [$type] : [], true) as $service)
-            return $service->getInstance();
-        return NULL;
+        $inj->getDependency(NULL, NULL);
     }
 }

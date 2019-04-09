@@ -25,18 +25,64 @@ namespace TASoft\DI;
 
 
 use TASoft\Collection\PriorityCollection;
+use TASoft\DI\Injector\InjectorInterface;
+use TASoft\PHP\SignatureService;
 
 class DependencyManager
 {
     /** @var PriorityCollection */
     private $dependencyInjectors;
+    /** @var SignatureService */
+    private $methodSignatureService;
 
-    public function __construct(array $dependencyInjectors)
+    public function __construct(iterable $dependencyInjectors, SignatureService $methodSignatureService = NULL)
     {
-
+        foreach($dependencyInjectors as $injector) {
+            $this->addDependencyInjector($injector);
+        }
+        $this->methodSignatureService = $methodSignatureService;
     }
 
-    public function addDependencyInjector() {
+    /**
+     * Adds a dependency injector to dependency manager
+     *
+     * @param InjectorInterface $injector
+     * @param int $priority
+     */
+    public function addDependencyInjector(InjectorInterface $injector, int $priority = 100) {
+        $this->dependencyInjectors->add($priority, $injector);
+    }
 
+    /**
+     * Removes a dependency injector to dependency manager
+     * @param InjectorInterface $injector
+     */
+    public function removeDependencyInjector(InjectorInterface $injector) {
+        $this->dependencyInjectors->remove($injector);
+    }
+
+    /**
+     * Clears all dependency injectors
+     */
+    public function clearDependencyInjectors() {
+        $this->dependencyInjectors->clear();
+    }
+
+    /**
+     * @return SignatureService
+     */
+    public function getMethodSignatureService(): SignatureService
+    {
+        if(!$this->methodSignatureService)
+            $this->methodSignatureService = SignatureService::getSignatureService();
+        return $this->methodSignatureService;
+    }
+
+    /**
+     * @param SignatureService $methodSignatureService
+     */
+    public function setMethodSignatureService(SignatureService $methodSignatureService): void
+    {
+        $this->methodSignatureService = $methodSignatureService;
     }
 }

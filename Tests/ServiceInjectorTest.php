@@ -21,40 +21,28 @@
  * SOFTWARE.
  */
 
-namespace TASoft\DI\Injector;
+/**
+ * ServiceInjectorTest.php
+ * php-dependency-injection
+ *
+ * Created on 2019-04-09 20:26 by thomas
+ */
 
-
-use TASoft\Service\Container\ServicePromise;
+use PHPUnit\Framework\TestCase;
+use TASoft\DI\Injector\ServiceInjector;
 use TASoft\Service\ServiceManager;
 
-class ServiceInjector implements InjectorInterface
+class ServiceInjectorTest extends TestCase
 {
-    /** @var ServiceManager */
-    private $serviceManager;
+    public function testServiceInjector() {
+        $sm = new ServiceManager();
+        $sm->service = $this;
 
-    /**
-     * ServiceInjector constructor.
-     * @param ServiceManager $serviceManager
-     */
-    public function __construct(ServiceManager $serviceManager)
-    {
-        $this->serviceManager = $serviceManager;
-    }
+        $inj = new ServiceInjector( $sm );
 
-    /**
-     * @return ServiceManager
-     */
-    public function getServiceManager(): ServiceManager
-    {
-        return $this->serviceManager;
-    }
-
-
-    public function getDependency(?string $type, ?string $name)
-    {
-        /** @var ServicePromise $service */
-        foreach($this->getServiceManager()->yieldServices($name ? [$name] : [], $type ? [$type] : [], true) as $service)
-            return $service->getInstance();
-        return NULL;
+        $this->assertNull( $inj->getDependency(NULL, "what?") );
+        $this->assertSame($this, $inj->getDependency(NULL, "service"));
+        $this->assertNull($inj->getDependency(NULL, NULL));
+        $this->assertSame($this, $inj->getDependency(TestCase::class, NULL));
     }
 }

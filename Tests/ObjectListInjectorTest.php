@@ -22,15 +22,51 @@
  */
 
 /**
- * DependencyInjectionTest.php
+ * ObjectListInjectorTest.php
  * php-dependency-injection
  *
- * Created on 2019-04-09 13:32 by thomas
+ * Created on 2019-04-09 20:39 by thomas
  */
 
+use TASoft\DI\Injector\ObjectListInjector;
 use PHPUnit\Framework\TestCase;
 
-class DependencyInjectionTest extends TestCase
+class ObjectListInjectorTest extends TestCase
 {
 
+    public function testOffsetExists()
+    {
+        $inj = new ObjectListInjector([1, 2, 3]);
+        $this->assertTrue(isset($inj[1]));
+        $this->assertFalse(isset($inj[13]));
+    }
+
+    public function testGetDependency()
+    {
+        $inj = new ObjectListInjector();
+        $inj->addObject($this);
+        $inj->addObject($inj, 'test');
+
+        $this->assertSame($this, $inj->getDependency(TestCase::class, NULL));
+        $this->assertNull($inj->getDependency("Something", NULL));
+        $this->assertNull($inj->getDependency(NULL, "Something"));
+
+        $this->assertSame($inj, $inj->getDependency(NULL, 'test'));
+    }
+
+    public function testOffsetUnset()
+    {
+        $inj = new ObjectListInjector([1, 2, 3]);
+        unset($inj[1]);
+        $this->assertEquals([1, 3], array_values($inj->getList()));
+    }
+
+    public function testAddObject()
+    {
+        $inj = new ObjectListInjector();
+        $inj->addObject($this);
+        $inj->addObject($inj, 'test');
+
+        $this->assertEquals([0 => $this, 'test' => $inj], $inj->getList());
+    }
 }
