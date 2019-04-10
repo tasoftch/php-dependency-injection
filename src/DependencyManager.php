@@ -25,7 +25,11 @@ namespace TASoft\DI;
 
 
 use TASoft\Collection\PriorityCollection;
+use TASoft\DI\Exception\DependencyException;
+use TASoft\DI\Exception\UnresolvedArgumentException;
 use TASoft\DI\Injector\InjectorInterface;
+use TASoft\PHP\Attribute\ArgumentValue;
+use TASoft\PHP\Signature\MethodSignature;
 use TASoft\PHP\SignatureService;
 
 class DependencyManager
@@ -35,8 +39,10 @@ class DependencyManager
     /** @var SignatureService */
     private $methodSignatureService;
 
-    public function __construct(iterable $dependencyInjectors, SignatureService $methodSignatureService = NULL)
+    public function __construct(iterable $dependencyInjectors = [], SignatureService $methodSignatureService = NULL)
     {
+        $this->dependencyInjectors = new PriorityCollection();
+
         foreach($dependencyInjectors as $injector) {
             $this->addDependencyInjector($injector);
         }
@@ -59,6 +65,10 @@ class DependencyManager
      */
     public function removeDependencyInjector(InjectorInterface $injector) {
         $this->dependencyInjectors->remove($injector);
+    }
+
+    public function getOrderedDependencyInjectors() {
+        return $this->dependencyInjectors->getOrderedElements();
     }
 
     /**
@@ -84,5 +94,67 @@ class DependencyManager
     public function setMethodSignatureService(SignatureService $methodSignatureService): void
     {
         $this->methodSignatureService = $methodSignatureService;
+    }
+
+    /**
+     * Tries to obtain a dependency from injectors
+     *
+     * @param string|NULL $type
+     * @param string|NULL $name
+     */
+    public function getDependency(string $type = NULL, string $name = NULL) {
+        /** @var InjectorInterface $injector */
+        foreach($this->dependencyInjectors as $injector) {
+            if($dep = $injector->getDependency($type, $name))
+                return $dep;
+        }
+        return NULL;
+    }
+
+    /**
+     * Main method of dependency manager. It will resolve the $symbol and inject required arguments.
+     * Everything that SignatureService accepts is allowed as symbol
+     * You can call a string with a classname to create a new instance of MyClass under dependency injection
+     *
+     * @param callable|array $symbol
+     * @return mixed
+     * @see SignatureService::getSignature()
+     */
+    public function call($symbol) {
+        $signature = $this->getMethodSignatureService()->getSignature($symbol);
+        if($signature) {
+            $arguments = [];
+
+            /** @var ArgumentValue $declaration */
+            foreach($signature as $declaration) {
+                $dep = $this->getDependency($declaration->getValue(), $declaration->getName());
+                if(!$dep) {
+                    if($declaration->isOptional())
+                        continue;
+
+                    if($declaration->allowsNull())
+                        $arguments[] = NULL;
+                    else {
+                        $e = new UnresolvedArgumentException("Could not resolve dependency for argument %s", 0, NULL, $declaration->getName());
+                        $e->setArgumentDeclaration($declaration);
+                        throw $e;
+                    }
+                } else {
+                    $arguments[] = $dep;
+                }
+            }
+
+            if($signature instanceof MethodSignature && $signature->getQualifiedName() == '__construct') {
+                $className = $signature->getClassName();
+                if($arguments)
+                    return new $className(...$arguments);
+                else
+                    return new $className();
+            } elseif($arguments)
+                return call_user_func_array($symbol, $arguments);
+            else
+                return call_user_func($symbol);
+        }
+        throw new DependencyException("Invalid symbol. Can not resolve any callable");
     }
 }
