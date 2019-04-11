@@ -73,7 +73,7 @@ class DependencyManagerTest extends TestCase
         }));
 
         $result = $dm->call("my_test_func");
-        $this->assertEquals([99, "Here I am"], $result);
+        $this->assertEquals([99, "Here I am", false], $result);
     }
 
     public function testCallClosureFunction() {
@@ -90,7 +90,7 @@ class DependencyManagerTest extends TestCase
         $result = $dm->call(function(bool $haha, $argument, string $test = "") {
             return func_get_args();
         });
-        $this->assertEquals([TRUE, 99], $result);
+        $this->assertEquals([TRUE, 99, ""], $result);
     }
 
     public function testCallInvokable() {
@@ -165,6 +165,54 @@ class DependencyManagerTest extends TestCase
         }));
 
         $dm->call(function(string $hello) {});
+    }
+
+    public function testPushingGroup() {
+        $dm = new DependencyManager();
+        $dm->addDependencyInjector(new CallbackInjector(function($t, $n) {
+            if($n == 'argument')
+                return 99;
+            return NULL;
+        }));
+
+        $func = function($argument, string $value = ""){return func_get_args();};
+
+        $this->assertEquals([99, ""], $dm->call($func));
+
+        $result = $dm->pushGroup(function() use ($dm, $func) {
+            $dm->addDependencyInjector(new CallbackInjector(function($t, $n) {
+                return $t == 'string' ? 'String' : NULL;
+            }));
+
+            return $dm->call($func);
+        });
+
+        $this->assertEquals([99, 'String'], $result);
+        $this->assertEquals([99, ""], $dm->call($func));
+    }
+
+    public function testIsolatedGroup() {
+        $dm = new DependencyManager();
+        $dm->addDependencyInjector(new CallbackInjector(function($t, $n) {
+            if($n == 'argument')
+                return 99;
+            return NULL;
+        }));
+
+        $func = function($argument = 3, string $value = ""){return func_get_args();};
+
+        $this->assertEquals([99, ""], $dm->call($func));
+
+        $result = $dm->isolateGroup(function() use ($dm, $func) {
+            $dm->addDependencyInjector(new CallbackInjector(function($t, $n) {
+                return $t == 'string' ? 'String' : NULL;
+            }));
+
+            return $dm->call($func);
+        });
+
+        $this->assertEquals([3, 'String'], $result);
+        $this->assertEquals([99, ""], $dm->call($func));
     }
 }
 

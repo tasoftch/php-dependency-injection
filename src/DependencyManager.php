@@ -36,8 +36,12 @@ class DependencyManager
 {
     /** @var PriorityCollection */
     private $dependencyInjectors;
+
     /** @var SignatureService */
     private $methodSignatureService;
+
+    /** @var PriorityCollection[] */
+    private $groupedDependencyInjectors = [];
 
     public function __construct(iterable $dependencyInjectors = [], SignatureService $methodSignatureService = NULL)
     {
@@ -56,6 +60,10 @@ class DependencyManager
      * @param int $priority
      */
     public function addDependencyInjector(InjectorInterface $injector, int $priority = 100) {
+        if($this->groupedDependencyInjectors) {
+            end($this->groupedDependencyInjectors)->add($priority, $injector);
+            return;
+        }
         $this->dependencyInjectors->add($priority, $injector);
     }
 
@@ -64,10 +72,17 @@ class DependencyManager
      * @param InjectorInterface $injector
      */
     public function removeDependencyInjector(InjectorInterface $injector) {
+        if($this->groupedDependencyInjectors) {
+            end($this->groupedDependencyInjectors)->remove($injector);
+            return;
+        }
         $this->dependencyInjectors->remove($injector);
     }
 
     public function getOrderedDependencyInjectors() {
+        if($this->groupedDependencyInjectors) {
+            return end($this->groupedDependencyInjectors)->getOrderedElements();
+        }
         return $this->dependencyInjectors->getOrderedElements();
     }
 
@@ -75,6 +90,10 @@ class DependencyManager
      * Clears all dependency injectors
      */
     public function clearDependencyInjectors() {
+        if($this->groupedDependencyInjectors) {
+            end($this->groupedDependencyInjectors)->clear();
+            return;
+        }
         $this->dependencyInjectors->clear();
     }
 
@@ -104,7 +123,7 @@ class DependencyManager
      */
     public function getDependency(string $type = NULL, string $name = NULL) {
         /** @var InjectorInterface $injector */
-        foreach($this->dependencyInjectors as $injector) {
+        foreach($this->getOrderedDependencyInjectors() as $injector) {
             if($dep = $injector->getDependency($type, $name))
                 return $dep;
         }
@@ -130,9 +149,8 @@ class DependencyManager
                 $dep = $this->getDependency($declaration->getValue(), $declaration->getName());
                 if(!$dep) {
                     if($declaration->isOptional())
-                        continue;
-
-                    if($declaration->allowsNull())
+                        $arguments[] = $declaration->getDefaultValue();
+                    elseif($declaration->allowsNull())
                         $arguments[] = NULL;
                     else {
                         $e = new UnresolvedArgumentException("Could not resolve dependency for argument %s", 0, NULL, $declaration->getName());
@@ -156,5 +174,30 @@ class DependencyManager
                 return call_user_func($symbol);
         }
         throw new DependencyException("Invalid symbol. Can not resolve any callable");
+    }
+
+    private function _execGroup(callable $goupedCode) {
+        try {
+            return $goupedCode();
+        } catch (\Throwable $exception) {
+            throw $exception;
+        } finally {
+            array_pop($this->groupedDependencyInjectors);
+        }
+    }
+
+    public function pushGroup(callable $groupedCode) {
+        if($this->groupedDependencyInjectors)
+            $last = end($this->groupedDependencyInjectors);
+        else
+            $last = $this->dependencyInjectors;
+
+        $this->groupedDependencyInjectors[] = new PriorityCollection(0, $last);
+        return $this->_execGroup($groupedCode);
+    }
+
+    public function isolateGroup(callable $groupedCode) {
+        $this->groupedDependencyInjectors[] = new PriorityCollection();
+        return $this->_execGroup($groupedCode);
     }
 }
