@@ -1,2 +1,3 @@
-# php-dependency-injection
-PHP Dependency Injection library in collaboration with service manager
+# PHP Dependency Injection
+
+Library to dynamically inject dependencies into object methods.
