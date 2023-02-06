@@ -83,17 +83,17 @@ class ObjectListInjector implements InjectorInterface, \ArrayAccess
         return NULL;
     }
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->list[$offset]);
     }
 
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         return $this->list[$offset];
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         if(NULL === $offset)
             $this->list[] = $value;
@@ -101,7 +101,7 @@ class ObjectListInjector implements InjectorInterface, \ArrayAccess
            $this->list[$offset] = $value;
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         if($this->offsetExists($offset))
             unset($this->list[$offset]);

@@ -49,6 +49,7 @@ class ObjectPropertyInjectorTest extends TestCase
         $this->assertSame($this, $inj->getDependency(NULL, 'myProperty'));
         $this->assertSame($this, $inj->getObject());
 
+		$this->expectException(\TASoft\DI\Exception\InvalidDependencyRequestException::class);
         $inj->getDependency(NULL, NULL);
     }
 }

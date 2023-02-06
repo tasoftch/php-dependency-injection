@@ -30,6 +30,7 @@
 
 use PHPUnit\Framework\TestCase;
 use TASoft\DI\DependencyManager;
+use TASoft\DI\Exception\DependencyException;
 use TASoft\DI\Injector\CallbackInjector;
 use TASoft\DI\Injector\ObjectListInjector;
 use TASoft\DI\Injector\ObjectPropertyInjector;
@@ -119,6 +120,7 @@ class DependencyManagerTest extends TestCase
     public function testCallInvalid() {
         $dm = new DependencyManager();
 
+		$this->expectException(DependencyException::class);
         $result = $dm->call(new class {
 
         });
@@ -163,6 +165,8 @@ class DependencyManagerTest extends TestCase
                 return TRUE;
             return NULL;
         }));
+
+		$this->expectException(\TASoft\DI\Exception\UnresolvedArgumentException::class);
 
         $dm->call(function(string $hello) {});
     }

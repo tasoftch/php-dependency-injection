@@ -52,6 +52,7 @@ class ArgumentInjectorTest extends TestCase
      * @expectedException PHPUnit\Framework\Error\Warning
      */
     public function testDuplicatedArguments() {
+		$this->expectException(Warning::class);
         $ai = new FunctionArgumentInjector(
             1, 2, 3
         );

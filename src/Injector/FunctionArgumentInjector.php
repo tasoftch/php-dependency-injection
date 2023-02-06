@@ -88,10 +88,10 @@ class FunctionArgumentInjector implements InjectorInterface
             return $this->namedArguments[$name];
 
         do {
-            if(isset($this->arguments[ strtoupper($type) ])) {
-                return $this->arguments[ strtoupper($type) ];
+            if(isset($this->arguments[ strtoupper($type?:"") ])) {
+                return $this->arguments[ strtoupper($type?:"") ];
             }
-            $type = get_parent_class($type);
+            $type = $type ? get_parent_class($type) : NULL;
         } while($type);
         return NULL;
     }
